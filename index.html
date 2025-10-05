@@ -1,59 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PGY1 Rotation Ranker</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f5f5f5;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-    }
-    #rotationList {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 20px;
-      max-width: 900px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    .card {
-      background-color: white;
-      border-radius: 10px;
-      padding: 15px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      cursor: move;
-      white-space: pre-wrap;
-    }
-    button {
-      display: block;
-      margin: 20px auto;
-      padding: 10px 20px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PGY1 Rotation Ranker</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+    margin: 0;
+    padding: 20px;
+  }
+  h1 { text-align: center; }
+  #rotationList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .card {
+    background-color: white;
+    border-radius: 10px;
+    padding: 10px 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    cursor: move;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .rank-input {
+    width: 40px;
+    font-weight: bold;
+    text-align: center;
+  }
+  .card-content { flex: 1; white-space: pre-wrap; }
+  button {
+    display: block;
+    margin: 20px auto;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  button:hover { background-color: #0056b3; }
+  .over { border: 2px dashed #007bff; }
+</style>
 </head>
 <body>
-  <h1>PGY1 Rotation Ranker</h1>
-  <div id="rotationList"></div>
-  <button onclick="copyOrder()">📋 Copy Final Order</button>
+<h1>PGY1 Rotation Ranker</h1>
+<div id="rotationList"></div>
+<button onclick="copyOrder()">📋 Copy Final Order</button>
 
-  <script>
-    const rotations = [
-      '1	Austin ED	Surg 1 - Hepatobilliary	Rehab/Subacute WD12	Psych PAPU	Austin Gen Med',
+<script>
+const rotations = [
+  '1	Austin ED	Surg 1 - Hepatobilliary	Rehab/Subacute WD12	Psych PAPU	Austin Gen Med',
 '2	Austin Gen Med	Austin ED	Surg 4 - Colorectal	Spinal Medicine	Mildura Ed',
 '3	Ortho	Austin Gen Med	Austin ED	Surg 4 - Colorectal	Radiology/LTU',
 '4	Surg 1 - HPB	Mildura ED	Austin Gen Med	Austin ED	Spinal Medicine',
@@ -118,76 +123,100 @@
 '63	Surg 1 - HPB	Geriatrics - WD10	Echuca ED	Austin Gen Med	Urology',
 '64	Surg 4 - Colorectal	Neuro	ENT Surg	Echuca ED	Austin Gen Med',
 '65	Austin Gen Med	Vasc Surg	Surg 2 - Breast	Gastro	Echuca ED',
+];
 
-    ];
+const list = document.getElementById('rotationList');
 
-    const list = document.getElementById('rotationList');
+// Create cards with rank input
+function renderList() {
+  list.innerHTML = '';
+  rotations.forEach((text, idx) => {
+    const card = document.createElement('div');
+    card.classList.add('card');
+    card.setAttribute('draggable', true);
+    card.dataset.index = idx;
 
-    rotations.forEach((name) => {
-      const card = document.createElement('div');
-      card.classList.add('card');
-      card.textContent = name;
-      list.appendChild(card);
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = 1;
+    input.max = rotations.length;
+    input.value = idx + 1;
+    input.className = 'rank-input';
+    input.addEventListener('change', (e) => {
+      const newIndex = parseInt(e.target.value) - 1;
+      moveCard(idx, newIndex);
     });
 
-    let dragSrcEl = null;
+    const content = document.createElement('div');
+    content.className = 'card-content';
+    content.textContent = text;
 
-    function handleDragStart(e) {
-      dragSrcEl = this;
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/html', this.innerHTML);
-      this.style.opacity = '0.4';
-    }
+    card.appendChild(input);
+    card.appendChild(content);
+    list.appendChild(card);
 
-    function handleDragOver(e) {
-      if (e.preventDefault) e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      return false;
-    }
+    addDnDHandlers(card);
+  });
+}
 
-    function handleDragEnter() {
-      this.classList.add('over');
-    }
+// Move card to a new position (shifts others)
+function moveCard(from, to) {
+  if(to < 0) to = 0;
+  if(to >= rotations.length) to = rotations.length - 1;
+  const [moved] = rotations.splice(from, 1);
+  rotations.splice(to, 0, moved);
+  renderList();
+}
 
-    function handleDragLeave() {
-      this.classList.remove('over');
-    }
+let dragSrcEl = null;
 
-    function handleDrop(e) {
-      if (e.stopPropagation) e.stopPropagation();
-      if (dragSrcEl !== this) {
-        const temp = this.innerHTML;
-        this.innerHTML = dragSrcEl.innerHTML;
-        dragSrcEl.innerHTML = temp;
-      }
-      return false;
-    }
+function handleDragStart(e) {
+  dragSrcEl = this;
+  e.dataTransfer.effectAllowed = 'move';
+  this.style.opacity = '0.4';
+}
 
-    function handleDragEnd() {
-      this.style.opacity = '1';
-      document.querySelectorAll('.card').forEach((card) => card.classList.remove('over'));
-    }
+function handleDragOver(e) {
+  e.preventDefault();
+  this.classList.add('over');
+}
 
-    function addDnDHandlers(card) {
-      card.setAttribute('draggable', true);
-      card.addEventListener('dragstart', handleDragStart, false);
-      card.addEventListener('dragenter', handleDragEnter, false);
-      card.addEventListener('dragover', handleDragOver, false);
-      card.addEventListener('dragleave', handleDragLeave, false);
-      card.addEventListener('drop', handleDrop, false);
-      card.addEventListener('dragend', handleDragEnd, false);
-    }
+function handleDragLeave() {
+  this.classList.remove('over');
+}
 
-    document.querySelectorAll('.card').forEach(addDnDHandlers);
+function handleDrop(e) {
+  e.stopPropagation();
+  const from = parseInt(dragSrcEl.dataset.index);
+  const to = parseInt(this.dataset.index);
+  if (dragSrcEl !== this) {
+    moveCard(from, to);
+  }
+  this.classList.remove('over');
+}
 
-    function copyOrder() {
-      const order = Array.from(document.querySelectorAll('.card')).map(card => card.textContent.trim());
-      navigator.clipboard.writeText(order.join('\n'));
-      alert('Rotation order copied to clipboard!');
-    }
-  </script>
+function handleDragEnd() {
+  this.style.opacity = '1';
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('over'));
+}
+
+function addDnDHandlers(card) {
+  card.addEventListener('dragstart', handleDragStart, false);
+  card.addEventListener('dragover', handleDragOver, false);
+  card.addEventListener('dragleave', handleDragLeave, false);
+  card.addEventListener('drop', handleDrop, false);
+  card.addEventListener('dragend', handleDragEnd, false);
+}
+
+// Copy final order
+function copyOrder() {
+  const order = Array.from(document.querySelectorAll('.card .card-content')).map(c => c.textContent.trim());
+  navigator.clipboard.writeText(order.join('\n'));
+  alert('Rotation order copied to clipboard!');
+}
+
+renderList();
+</script>
 </body>
 </html>
-
-
 
